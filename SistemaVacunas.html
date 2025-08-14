@@ -1,0 +1,3177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Vacunas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        /* Embedding all CSS styles directly in the HTML */
+        /* Custom styles for the vaccine tracking app */
+        .page {
+            min-height: 100vh;
+        }
+
+        .nav-link.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .nav-link.active i {
+            color: white;
+        }
+
+        /* Toast styles */
+        .toast {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            max-width: 20rem;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .toast.success {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .toast.error {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .toast.info {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Mobile responsive adjustments */
+        @media (max-width: 768px) {
+            #mobile-menu-btn {
+                display: block !important;
+            }
+
+            #navigation.mobile-open {
+                transform: translateX(0);
+            }
+        }
+
+        /* Form styles */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.5rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Calendar styles */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background-color: #e5e7eb;
+            border: 1px solid #e5e7eb;
+        }
+
+        .calendar-cell {
+            background-color: white;
+            padding: 0.75rem;
+            min-height: 4rem;
+            position: relative;
+            transition: background-color 0.2s ease;
+        }
+
+        .calendar-cell:hover {
+            background-color: #f3f4f6;
+        }
+
+        .calendar-cell.other-month {
+            background-color: #f9fafb;
+            color: #9ca3af;
+        }
+
+        .calendar-cell.today {
+            background-color: #dbeafe;
+            font-weight: 600;
+        }
+
+        .calendar-cell.selected {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .calendar-cell.selected:hover {
+            background-color: #2563eb;
+        }
+
+        .calendar-cell.has-vaccine {
+            border-left: 3px solid #10b981;
+        }
+
+        .vaccine-dot {
+            position: absolute;
+            top: 0.25rem;
+            right: 0.25rem;
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+        }
+
+        /* Progress bar styles */
+        .progress-bar {
+            width: 100%;
+            height: 0.5rem;
+            background-color: #e5e7eb;
+            border-radius: 0.25rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #3b82f6;
+            transition: width 0.3s ease;
+        }
+
+        /* Authentication styles */
+        .auth-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .auth-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        /* Navigation styles */
+        #navigation {
+            transition: transform 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            #navigation {
+                transform: translateX(-100%);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Authentication Page -->
+    <div id="auth-page" class="page">
+        <div class="auth-container flex items-center justify-center p-4">
+            <div class="auth-card">
+                <div class="text-center mb-8">
+                    <i class="fas fa-syringe text-4xl text-blue-600 mb-4"></i>
+                    <h1 class="text-2xl font-bold text-gray-900">Mis Vacunas</h1>
+                    <p class="text-gray-600 mt-2">Sistema de seguimiento de vacunas</p>
+                </div>
+
+                <!-- Login Form -->
+                <div id="login-form">
+                    <h2 class="text-xl font-semibold mb-6 text-center">Iniciar Sesión</h2>
+                    <form id="login-form-element" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Correo Electrónico</label>
+                            <input type="email" id="login-email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
+                            <input type="password" id="login-password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                            Iniciar Sesión
+                        </button>
+                    </form>
+                    <p class="text-center mt-4 text-sm text-gray-600">
+                        ¿No tienes cuenta? 
+                        <button onclick="showRegisterForm()" class="text-blue-600 hover:text-blue-700 font-medium">Regístrate</button>
+                    </p>
+                </div>
+
+                <!-- Register Form -->
+                <div id="register-form" class="hidden">
+                    <h2 class="text-xl font-semibold mb-6 text-center">Crear Cuenta</h2>
+                    <form id="register-form-element" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nombre Completo</label>
+                            <input type="text" id="register-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Edad</label>
+                            <input type="number" id="register-age" min="1" max="120" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Correo Electrónico</label>
+                            <input type="email" id="register-email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
+                            <input type="password" id="register-password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Rol</label>
+                            <select id="register-role" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                <option value="">Seleccionar rol</option>
+                                <option value="patient">Paciente</option>
+                                <option value="caregiver">Cuidador</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors">
+                            Crear Cuenta
+                        </button>
+                    </form>
+                    <p class="text-center mt-4 text-sm text-gray-600">
+                        ¿Ya tienes cuenta? 
+                        <button onclick="showLoginForm()" class="text-blue-600 hover:text-blue-700 font-medium">Inicia sesión</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="main-app" class="hidden">
+        <!-- Navigation -->
+        <nav id="navigation" class="fixed left-0 top-0 h-full w-64 bg-white shadow-lg z-40">
+            <div class="p-6 border-b">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-syringe text-2xl text-blue-600"></i>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">Mis Vacunas</h1>
+                        <p class="text-sm text-gray-600" id="nav-user-name">Usuario</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4">
+                <ul class="space-y-2">
+                    <li>
+                        <button onclick="showPage('dashboard')" class="nav-link w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg hover:bg-gray-100 transition-colors">
+                            <i class="fas fa-home"></i>
+                            <span>Panel Inicio</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showPage('register-vaccine')" class="nav-link w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg hover:bg-gray-100 transition-colors">
+                            <i class="fas fa-plus"></i>
+                            <span>Registrar Vacuna</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showPage('calendar')" class="nav-link w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg hover:bg-gray-100 transition-colors">
+                            <i class="fas fa-calendar"></i>
+                            <span>Calendario</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showPage('history')" class="nav-link w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg hover:bg-gray-100 transition-colors">
+                            <i class="fas fa-history"></i>
+                            <span>Historial</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showPage('profile')" class="nav-link w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg hover:bg-gray-100 transition-colors">
+                            <i class="fas fa-user"></i>
+                            <span>Perfil</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="absolute bottom-0 left-0 right-0 p-4 border-t">
+                <button onclick="logout()" class="w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg hover:bg-red-50 text-red-600 transition-colors">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Cerrar Sesión</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Mobile Menu Button -->
+        <button id="mobile-menu-btn" class="fixed top-4 left-4 z-50 md:hidden bg-white p-2 rounded-lg shadow-lg" onclick="toggleMobileMenu()">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Dashboard Page -->
+        <div id="dashboard-page" class="page">
+            <main class="md:ml-64 p-4 md:p-6">
+                <div class="max-w-6xl mx-auto space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="text-3xl font-bold tracking-tight">Panel Inicio</h1>
+                            <p class="text-gray-600">Resumen de tu tratamiento de vacunas</p>
+                        </div>
+                        <button onclick="showPage('register-vaccine')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                            <i class="fas fa-plus"></i>
+                            Registrar Vacuna
+                        </button>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="grid gap-4 md:grid-cols-4">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Próxima Vacuna</p>
+                                    <p class="text-2xl font-bold text-blue-600" id="next-vaccine-date">-</p>
+                                </div>
+                                <i class="fas fa-calendar-alt text-blue-600 text-2xl"></i>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Cumplimiento</p>
+                                    <p class="text-2xl font-bold text-green-600" id="compliance-rate">0%</p>
+                                </div>
+                                <i class="fas fa-chart-line text-green-600 text-2xl"></i>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Este Mes</p>
+                                    <p class="text-2xl font-bold text-purple-600" id="month-vaccines">0</p>
+                                </div>
+                                <i class="fas fa-syringe text-purple-600 text-2xl"></i>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Estado</p>
+                                    <p class="text-2xl font-bold text-orange-600" id="treatment-status">-</p>
+                                </div>
+                                <i class="fas fa-heartbeat text-orange-600 text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alerts -->
+                    <div id="dashboard-alerts" class="space-y-4">
+                        <!-- Alerts will be populated by JavaScript -->
+                    </div>
+
+                    <div class="grid gap-6 lg:grid-cols-2">
+                        <!-- Next Vaccine Card -->
+                        <div class="bg-white rounded-lg shadow">
+                            <div class="p-6 border-b">
+                                <h3 class="text-lg font-semibold">Próxima Vacuna</h3>
+                            </div>
+                            <div class="p-6" id="next-vaccine-card">
+                                <!-- Next vaccine info will be populated by JavaScript -->
+                            </div>
+                        </div>
+
+                        <!-- Recent Records -->
+                        <div class="bg-white rounded-lg shadow">
+                            <div class="p-6 border-b">
+                                <h3 class="text-lg font-semibold">Registros Recientes</h3>
+                            </div>
+                            <div class="p-6" id="recent-records">
+                                <!-- Recent records will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Register Vaccine Page -->
+        <div id="register-vaccine-page" class="page hidden">
+            <main class="md:ml-64 p-4 md:p-6">
+                <div class="max-w-2xl mx-auto space-y-6">
+                    <div>
+                        <h1 class="text-3xl font-bold tracking-tight">Registrar Vacuna</h1>
+                        <p class="text-gray-600">Registra una nueva aplicación de vacuna</p>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow">
+                        <div class="p-6 border-b">
+                            <h3 class="text-lg font-semibold">Detalles de la Vacuna</h3>
+                        </div>
+                        
+                        <form id="vaccine-form" class="p-6 space-y-6">
+                            <div class="grid gap-6 md:grid-cols-2">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Aplicación</label>
+                                    <input type="date" id="vaccine-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Hora (opcional)</label>
+                                    <input type="time" id="vaccine-time" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                            </div>
+
+                            <div class="grid gap-6 md:grid-cols-2">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Brazo</label>
+                                    <select id="vaccine-arm" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                        <option value="">Seleccionar brazo</option>
+                                        <option value="left">Izquierdo</option>
+                                        <option value="right">Derecho</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Unidades (ml)</label>
+                                    <input type="number" id="vaccine-units" step="0.1" min="0.1" max="10" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Efectos Secundarios (opcional)</label>
+                                <div class="grid gap-2 md:grid-cols-3">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" value="dolor" class="side-effect-checkbox mr-2">
+                                        <span class="text-sm">Dolor</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" value="hinchazón" class="side-effect-checkbox mr-2">
+                                        <span class="text-sm">Hinchazón</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" value="enrojecimiento" class="side-effect-checkbox mr-2">
+                                        <span class="text-sm">Enrojecimiento</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" value="picazón" class="side-effect-checkbox mr-2">
+                                        <span class="text-sm">Picazón</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" value="fatiga" class="side-effect-checkbox mr-2">
+                                        <span class="text-sm">Fatiga</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" value="fiebre" class="side-effect-checkbox mr-2">
+                                        <span class="text-sm">Fiebre</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Notas Adicionales (opcional)</label>
+                                <textarea id="vaccine-notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Observaciones, reacciones especiales, etc."></textarea>
+                            </div>
+
+                            <div class="flex gap-4 pt-4">
+                                <button type="submit" class="bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700">
+                                    <i class="fas fa-save mr-2"></i>
+                                    Registrar Vacuna
+                                </button>
+                                <button type="button" onclick="showPage('dashboard')" class="border border-gray-300 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-50">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Including all other pages from the original HTML file -->
+        
+        <!-- Calendar Page -->
+        <div id="calendar-page" class="page hidden">
+            <main class="md:ml-64 p-4 md:p-6">
+                <div class="max-w-6xl mx-auto space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="text-3xl font-bold tracking-tight">Calendario</h1>
+                            <p class="text-gray-600">Visualiza tu cronograma de vacunas</p>
+                        </div>
+                        <button onclick="showPage('register-vaccine')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                            <i class="fas fa-plus"></i>
+                            Registrar Vacuna
+                        </button>
+                    </div>
+
+                    <div class="grid gap-6 lg:grid-cols-3">
+                        <!-- Calendar -->
+                        <div class="lg:col-span-2">
+                            <div class="bg-white rounded-lg shadow">
+                                <!-- Calendar Header -->
+                                <div class="flex items-center justify-between p-6 border-b">
+                                    <h2 class="text-lg font-semibold" id="calendar-month-year">Enero 2024</h2>
+                                    <div class="flex items-center gap-2">
+                                        <button onclick="changeMonth(-1)" class="p-2 hover:bg-gray-100 rounded-lg">
+                                            <i class="fas fa-chevron-left text-gray-600"></i>
+                                        </button>
+                                        <button onclick="goToToday()" class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200">
+                                            Hoy
+                                        </button>
+                                        <button onclick="changeMonth(1)" class="p-2 hover:bg-gray-100 rounded-lg">
+                                            <i class="fas fa-chevron-right text-gray-600"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Calendar Grid -->
+                                <div class="p-6">
+                                    <!-- Days of week header -->
+                                    <div class="grid grid-cols-7 gap-1 mb-2">
+                                        <div class="p-2 text-center text-sm font-medium text-gray-500">Dom</div>
+                                        <div class="p-2 text-center text-sm font-medium text-gray-500">Lun</div>
+                                        <div class="p-2 text-center text-sm font-medium text-gray-500">Mar</div>
+                                        <div class="p-2 text-center text-sm font-medium text-gray-500">Mié</div>
+                                        <div class="p-2 text-center text-sm font-medium text-gray-500">Jue</div>
+                                        <div class="p-2 text-center text-sm font-medium text-gray-500">Vie</div>
+                                        <div class="p-2 text-center text-sm font-medium text-gray-500">Sáb</div>
+                                    </div>
+
+                                    <!-- Calendar days -->
+                                    <div id="calendar-grid" class="calendar-grid">
+                                        <!-- Calendar cells will be populated by JavaScript -->
+                                    </div>
+                                </div>
+
+                                <!-- Legend -->
+                                <div class="px-6 pb-6">
+                                    <div class="flex items-center gap-6 text-sm">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                                            <span>Vacuna aplicada</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                            <span>Vacuna programada</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                                            <span>Vacuna atrasada</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sidebar -->
+                        <div class="space-y-6">
+                            <!-- Selected Day Details -->
+                            <div class="bg-white rounded-lg shadow">
+                                <div class="p-6 border-b">
+                                    <h3 class="text-lg font-semibold" id="selected-day-title">Selecciona un día</h3>
+                                </div>
+                                <div class="p-6" id="selected-day-content">
+                                    <p class="text-gray-500 text-center">Haz clic en un día del calendario para ver los detalles</p>
+                                </div>
+                            </div>
+
+                            <!-- Monthly Summary -->
+                            <div class="bg-white rounded-lg shadow">
+                                <div class="p-6 border-b">
+                                    <h3 class="text-lg font-semibold">Resumen del Mes</h3>
+                                </div>
+                                <div class="p-6 space-y-4">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-gray-600">Vacunas aplicadas</span>
+                                        <span class="font-semibold text-green-600" id="monthly-applied">0</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-gray-600">Vacunas programadas</span>
+                                        <span class="font-semibold text-blue-600" id="monthly-scheduled">0</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-gray-600">Vacunas atrasadas</span>
+                                        <span class="font-semibold text-red-600" id="monthly-overdue">0</span>
+                                    </div>
+                                    <div class="pt-4 border-t">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-gray-600">Cumplimiento</span>
+                                            <span class="font-semibold" id="monthly-compliance">0%</span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                            <div id="monthly-compliance-bar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Upcoming Vaccines -->
+                            <div class="bg-white rounded-lg shadow">
+                                <div class="p-6 border-b">
+                                    <h3 class="text-lg font-semibold">Próximas Vacunas</h3>
+                                </div>
+                                <div class="p-6" id="upcoming-vaccines">
+                                    <p class="text-gray-500 text-center">No hay vacunas próximas</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- History Page -->
+        <div id="history-page" class="page hidden">
+            <main class="md:ml-64 p-4 md:p-6">
+                <div class="max-w-6xl mx-auto space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="text-3xl font-bold tracking-tight">Historial</h1>
+                            <p class="text-gray-600">Registro completo de tus vacunas aplicadas</p>
+                        </div>
+                        <button onclick="exportHistory()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2">
+                            <i class="fas fa-download"></i>
+                            Exportar
+                        </button>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold mb-4">Filtros</h3>
+                        <div class="grid gap-4 md:grid-cols-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Desde</label>
+                                <input type="date" id="filter-from" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Hasta</label>
+                                <input type="date" id="filter-to" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Brazo</label>
+                                <select id="filter-arm" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="">Todos</option>
+                                    <option value="left">Izquierdo</option>
+                                    <option value="right">Derecho</option>
+                                </select>
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="applyHistoryFilters()" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
+                                    Aplicar Filtros
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Statistics -->
+                    <div class="grid gap-4 md:grid-cols-4">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Total Vacunas</p>
+                                    <p class="text-2xl font-bold text-gray-900" id="total-vaccines">0</p>
+                                </div>
+                                <i class="fas fa-syringe text-blue-600 text-2xl"></i>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Este Mes</p>
+                                    <p class="text-2xl font-bold text-green-600" id="this-month-vaccines">0</p>
+                                </div>
+                                <i class="fas fa-calendar text-green-600 text-2xl"></i>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Brazo Izquierdo</p>
+                                    <p class="text-2xl font-bold text-purple-600" id="left-arm-vaccines">0</p>
+                                </div>
+                                <i class="fas fa-hand-paper text-purple-600 text-2xl"></i>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Brazo Derecho</p>
+                                    <p class="text-2xl font-bold text-orange-600" id="right-arm-vaccines">0</p>
+                                </div>
+                                <i class="fas fa-hand-paper text-orange-600 text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- History List -->
+                    <div class="bg-white rounded-lg shadow">
+                        <div class="p-6 border-b">
+                            <h3 class="text-lg font-semibold">Registro de Vacunas</h3>
+                        </div>
+                        <div id="history-list" class="divide-y">
+                            <!-- History items will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Profile Page -->
+        <div id="profile-page" class="page hidden">
+            <main class="md:ml-64 p-4 md:p-6">
+                <div class="max-w-4xl mx-auto space-y-6">
+                    <div>
+                        <h1 class="text-3xl font-bold tracking-tight">Perfil</h1>
+                        <p class="text-gray-600">Gestiona tu información personal y configuración</p>
+                    </div>
+
+                    <div class="grid gap-6 lg:grid-cols-3">
+                        <!-- Profile Info -->
+                        <div class="lg:col-span-2 space-y-6">
+                            <!-- Personal Information -->
+                            <div class="bg-white rounded-lg shadow">
+                                <div class="p-6 border-b">
+                                    <h3 class="text-lg font-semibold">Información Personal</h3>
+                                </div>
+                                <form id="profile-form" class="p-6 space-y-4">
+                                    <div class="grid gap-4 md:grid-cols-2">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Nombre Completo</label>
+                                            <input type="text" id="profile-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Edad</label>
+                                            <input type="number" id="profile-age" min="1" max="120" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Correo Electrónico</label>
+                                        <input type="email" id="profile-email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Contacto de Emergencia</label>
+                                        <input type="tel" id="profile-emergency" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Rol</label>
+                                        <select id="profile-role" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled>
+                                            <option value="patient">Paciente</option>
+                                            <option value="caregiver">Cuidador</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex gap-4 pt-4">
+                                        <button type="submit" class="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700">
+                                            Guardar Cambios
+                                        </button>
+                                        <button type="button" onclick="resetProfileForm()" class="border border-gray-300 text-gray-700 py-2 px-6 rounded-lg hover:bg-gray-50">
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Treatment Configuration -->
+                            <div class="bg-white rounded-lg shadow">
+                                <div class="p-6 border-b">
+                                    <h3 class="text-lg font-semibold">Configuración de Tratamiento</h3>
+                                </div>
+                                <div class="p-6" id="treatment-summary">
+                                    <!-- Treatment info will be populated by JavaScript -->
+                                </div>
+                            </div>
+
+                            <!-- Security Settings -->
+                            <div class="bg-white rounded-lg shadow">
+                                <div class="p-6 border-b">
+                                    <h3 class="text-lg font-semibold">Seguridad</h3>
+                                </div>
+                                <div class="p-6 space-y-6">
+                                    <!-- Change Password -->
+                                    <div class="border-b pb-6">
+                                        <h4 class="font-medium mb-4">Cambiar Contraseña</h4>
+                                        <form id="change-password-form" class="space-y-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Contraseña Actual</label>
+                                                <input type="password" id="current-password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Nueva Contraseña</label>
+                                                <input type="password" id="new-password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                                <div class="mt-2">
+                                                    <div class="text-xs text-gray-500">
+                                                        <div id="password-strength" class="mb-1"></div>
+                                                        <ul class="list-disc list-inside space-y-1">
+                                                            <li id="length-check" class="text-red-500">Al menos 8 caracteres</li>
+                                                            <li id="uppercase-check" class="text-red-500">Una letra mayúscula</li>
+                                                            <li id="lowercase-check" class="text-red-500">Una letra minúscula</li>
+                                                            <li id="number-check" class="text-red-500">Un número</li>
+                                                            <li id="special-check" class="text-red-500">Un carácter especial</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Confirmar Nueva Contraseña</label>
+                                                <input type="password" id="confirm-password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                            </div>
+                                            <button type="submit" class="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700">
+                                                Cambiar Contraseña
+                                            </button>
+                                        </form>
+                                    </div>
+
+                                    <!-- Two-Factor Authentication -->
+                                    <div>
+                                        <h4 class="font-medium mb-4">Autenticación de Dos Factores (2FA)</h4>
+                                        <div id="2fa-disabled" class="space-y-4">
+                                            <div class="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                                <div class="flex items-center">
+                                                    <i class="fas fa-shield-alt text-yellow-600 mr-3"></i>
+                                                    <div>
+                                                        <p class="font-medium text-yellow-800">2FA Desactivado</p>
+                                                        <p class="text-sm text-yellow-700">Agrega una capa extra de seguridad a tu cuenta</p>
+                                                    </div>
+                                                </div>
+                                                <button onclick="enable2FA()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm">
+                                                    Activar 2FA
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div id="2fa-setup" class="hidden space-y-4">
+                                            <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                                <h5 class="font-medium text-blue-800 mb-2">Configurar 2FA</h5>
+                                                <p class="text-sm text-blue-700 mb-4">Escanea este código QR con tu aplicación de autenticación (Google Authenticator, Authy, etc.)</p>
+                                                <div class="flex justify-center mb-4">
+                                                    <div id="qr-code" class="w-48 h-48 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center">
+                                                        <canvas id="qr-canvas" width="192" height="192"></canvas>
+                                                    </div>
+                                                </div>
+                                                <div class="text-center mb-4">
+                                                    <p class="text-sm text-gray-600 mb-2">O ingresa este código manualmente:</p>
+                                                    <code id="manual-code" class="bg-gray-100 px-3 py-1 rounded text-sm font-mono"></code>
+                                                </div>
+                                                <div class="space-y-3">
+                                                    <div>
+                                                        <label class="block text-sm font-medium text-gray-700 mb-2">Código de Verificación</label>
+                                                        <input type="text" id="2fa-code" placeholder="000000" maxlength="6" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center font-mono text-lg">
+                                                    </div>
+                                                    <div class="flex gap-3">
+                                                        <button onclick="verify2FA()" class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700">
+                                                            Verificar y Activar
+                                                        </button>
+                                                        <button onclick="cancel2FASetup()" class="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50">
+                                                            Cancelar
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div id="2fa-enabled" class="hidden space-y-4">
+                                            <div class="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                                                <div class="flex items-center">
+                                                    <i class="fas fa-shield-check text-green-600 mr-3"></i>
+                                                    <div>
+                                                        <p class="font-medium text-green-800">2FA Activado</p>
+                                                        <p class="text-sm text-green-700">Tu cuenta está protegida con autenticación de dos factores</p>
+                                                    </div>
+                                                </div>
+                                                <button onclick="disable2FA()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm">
+                                                    Desactivar 2FA
+                                                </button>
+                                            </div>
+                                            
+                                            <div class="p-4 border border-gray-200 rounded-lg">
+                                                <h5 class="font-medium mb-2">Códigos de Respaldo</h5>
+                                                <p class="text-sm text-gray-600 mb-3">Guarda estos códigos en un lugar seguro. Puedes usarlos para acceder a tu cuenta si pierdes tu dispositivo de autenticación.</p>
+                                                <div id="backup-codes" class="grid grid-cols-2 gap-2 mb-3 font-mono text-sm">
+                                                    <!-- Backup codes will be generated here -->
+                                                </div>
+                                                <div class="flex gap-3">
+                                                    <button onclick="generateNewBackupCodes()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm">
+                                                        Generar Nuevos Códigos
+                                                    </button>
+                                                    <button onclick="downloadBackupCodes()" class="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 text-sm">
+                                                        Descargar Códigos
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Notification Settings -->
+                            <div class="bg-white rounded-lg shadow">
+                                <div class="p-6 border-b">
+                                    <h3 class="text-lg font-semibold">Configuración de Notificaciones</h3>
+                                </div>
+                                <div class="p-6 space-y-4">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h4 class="font-medium">Recordatorios de Vacunas</h4>
+                                            <p class="text-sm text-gray-600">Recibe notificaciones antes de cada vacuna</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="notifications-vaccines" class="sr-only peer">
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h4 class="font-medium">Alertas de Retraso</h4>
+                                            <p class="text-sm text-gray-600">Notificaciones cuando una vacuna está atrasada</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="notifications-delays" class="sr-only peer">
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h4 class="font-medium">Resúmenes Semanales</h4>
+                                            <p class="text-sm text-gray-600">Recibe un resumen semanal de tu progreso</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="notifications-weekly" class="sr-only peer">
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+
+                                    <div class="pt-4 border-t">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Tiempo de Anticipación</label>
+                                        <select id="notification-timing" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            <option value="15">15 minutos antes</option>
+                                            <option value="30">30 minutos antes</option>
+                                            <option value="60">1 hora antes</option>
+                                            <option value="120">2 horas antes</option>
+                                            <option value="1440">1 día antes</option>
+                                        </select>
+                                    </div>
+
+                                    <button onclick="saveNotificationSettings()" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
+                                        Guardar Configuración
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Data Export -->
+                            <div class="bg-white rounded-lg shadow">
+                                <div class="p-6 border-b">
+                                    <h3 class="text-lg font-semibold">Exportar Datos</h3>
+                                </div>
+                                <div class="p-6 space-y-4">
+                                    <p class="text-gray-600">Descarga tus datos en diferentes formatos para respaldo o análisis.</p>
+                                    
+                                    <div class="grid gap-4 md:grid-cols-2">
+                                        <button onclick="exportData('json')" class="flex items-center justify-center gap-2 p-4 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                            <i class="fas fa-file-code text-blue-600"></i>
+                                            <div class="text-left">
+                                                <div class="font-medium">Exportar JSON</div>
+                                                <div class="text-sm text-gray-600">Formato técnico completo</div>
+                                            </div>
+                                        </button>
+
+                                        <button onclick="exportData('csv')" class="flex items-center justify-center gap-2 p-4 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                            <i class="fas fa-file-csv text-green-600"></i>
+                                            <div class="text-left">
+                                                <div class="font-medium">Exportar CSV</div>
+                                                <div class="text-sm text-gray-600">Para Excel y análisis</div>
+                                            </div>
+                                        </button>
+
+                                        <button onclick="exportData('pdf')" class="flex items-center justify-center gap-2 p-4 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                            <i class="fas fa-file-pdf text-red-600"></i>
+                                            <div class="text-left">
+                                                <div class="font-medium">Reporte PDF</div>
+                                                <div class="text-sm text-gray-600">Documento médico</div>
+                                            </div>
+                                        </button>
+
+                                        <button onclick="exportData('backup')" class="flex items-center justify-center gap-2 p-4 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                            <i class="fas fa-download text-purple-600"></i>
+                                            <div class="text-left">
+                                                <div class="font-medium">Respaldo Completo</div>
+                                                <div class="text-sm text-gray-600">Todos los datos</div>
+                                            </div>
+                                        </button>
+                                    </div>
+
+                                    <div class="pt-4 border-t">
+                                        <h4 class="font-medium mb-2">Opciones de Exportación</h4>
+                                        <div class="space-y-2">
+                                            <label class="flex items-center">
+                                                <input type="checkbox" id="export-include-images" class="mr-2" checked>
+                                                <span class="text-sm">Incluir imágenes (fotos de perfil y medicamentos)</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="checkbox" id="export-include-notes" class="mr-2" checked>
+                                                <span class="text-sm">Incluir notas y comentarios</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="checkbox" id="export-include-settings" class="mr-2">
+                                                <span class="text-sm">Incluir configuraciones de la aplicación</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Privacy Settings -->
+                            <div class="bg-white rounded-lg shadow">
+                                <div class="p-6 border-b">
+                                    <h3 class="text-lg font-semibold">Configuración de Privacidad</h3>
+                                </div>
+                                <div class="p-6 space-y-4">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h4 class="font-medium">Datos Anónimos</h4>
+                                            <p class="text-sm text-gray-600">Permitir uso de datos anónimos para mejoras</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="privacy-anonymous" class="sr-only peer">
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h4 class="font-medium">Compartir con Médicos</h4>
+                                            <p class="text-sm text-gray-600">Permitir compartir datos con profesionales de salud</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="privacy-doctors" class="sr-only peer" checked>
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h4 class="font-medium">Recordar Sesión</h4>
+                                            <p class="text-sm text-gray-600">Mantener sesión iniciada automáticamente</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="privacy-remember" class="sr-only peer" checked>
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+
+                                    <div class="pt-4 border-t">
+                                        <h4 class="font-medium mb-2">Retención de Datos</h4>
+                                        <select id="privacy-retention" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            <option value="1">1 año</option>
+                                            <option value="2">2 años</option>
+                                            <option value="5" selected>5 años</option>
+                                            <option value="10">10 años</option>
+                                            <option value="forever">Permanente</option>
+                                        </select>
+                                        <p class="text-xs text-gray-500 mt-1">Tiempo que se conservarán tus datos médicos</p>
+                                    </div>
+
+                                    <button onclick="savePrivacySettings()" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
+                                        Guardar Configuración
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Danger Zone -->
+                            <div class="bg-white rounded-lg shadow border-l-4 border-red-500">
+                                <div class="p-6 border-b">
+                                    <h3 class="text-lg font-semibold text-red-600">Zona de Peligro</h3>
+                                    <p class="text-sm text-gray-600 mt-1">Acciones irreversibles que afectan tu cuenta y datos</p>
+                                </div>
+                                <div class="p-6 space-y-4">
+                                    <div class="border border-red-200 rounded-lg p-4">
+                                        <h4 class="font-medium text-red-800 mb-2">Reiniciar Tratamiento</h4>
+                                        <p class="text-sm text-gray-600 mb-3">Elimina todo el historial de vacunas y reinicia la configuración del tratamiento.</p>
+                                        <button onclick="confirmResetTreatment()" class="bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 text-sm">
+                                            Reiniciar Tratamiento
+                                        </button>
+                                    </div>
+
+                                    <div class="border border-red-200 rounded-lg p-4">
+                                        <h4 class="font-medium text-red-800 mb-2">Eliminar Todos los Datos</h4>
+                                        <p class="text-sm text-gray-600 mb-3">Elimina permanentemente todos tus datos, incluyendo perfil, historial y configuraciones.</p>
+                                        <button onclick="confirmDeleteAllData()" class="bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 text-sm">
+                                            Eliminar Todos los Datos
+                                        </button>
+                                    </div>
+
+                                    <div class="border border-red-200 rounded-lg p-4">
+                                        <h4 class="font-medium text-red-800 mb-2">Eliminar Cuenta</h4>
+                                        <p class="text-sm text-gray-600 mb-3">Elimina permanentemente tu cuenta y todos los datos asociados. Esta acción no se puede deshacer.</p>
+                                        <button onclick="confirmDeleteAccount()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm">
+                                            Eliminar Cuenta
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Profile Picture and Stats -->
+                        <div class="space-y-6">
+                            <!-- Profile Picture -->
+                            <div class="bg-white rounded-lg shadow p-6 text-center">
+                                <div class="mb-4">
+                                    <div class="w-24 h-24 mx-auto bg-gray-200 rounded-full flex items-center justify-center overflow-hidden" id="profile-picture-container">
+                                        <i class="fas fa-user text-gray-400 text-3xl" id="profile-picture-placeholder"></i>
+                                        <img id="profile-picture" class="w-full h-full object-cover hidden" alt="Foto de perfil">
+                                    </div>
+                                </div>
+                                <input type="file" id="profile-picture-input" accept="image/*" class="hidden">
+                                <button onclick="document.getElementById('profile-picture-input').click()" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 text-sm">
+                                    Cambiar Foto
+                                </button>
+                            </div>
+
+                            <!-- Quick Stats -->
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <h4 class="font-semibold mb-4">Estadísticas Rápidas</h4>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Vacunas totales</span>
+                                        <span class="font-semibold" id="profile-total-vaccines">0</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Cumplimiento</span>
+                                        <span class="font-semibold" id="profile-compliance">0%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Última vacuna</span>
+                                        <span class="font-semibold" id="profile-last-vaccine">-</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Próxima vacuna</span>
+                                        <span class="font-semibold" id="profile-next-vaccine">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Treatment Setup Page -->
+        <div id="treatment-setup-page" class="page hidden">
+            <main class="md:ml-64 p-4 md:p-6">
+                <div class="max-w-4xl mx-auto space-y-6">
+                    <div>
+                        <h1 class="text-3xl font-bold tracking-tight">Configuración de Tratamiento</h1>
+                        <p class="text-gray-600">Configura los detalles de tu tratamiento de vacunas</p>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow">
+                        <div class="p-6 border-b">
+                            <h3 class="text-lg font-semibold">Detalles del Tratamiento</h3>
+                        </div>
+                        
+                        <form id="treatment-form" class="p-6 space-y-6">
+                            <!-- Basic Information -->
+                            <div class="grid gap-6 md:grid-cols-2">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Medicamento</label>
+                                    <input type="text" id="treatment-medication" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ej: Alergia Grass" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Brazo Inicial</label>
+                                    <select id="treatment-arm" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                        <option value="">Seleccionar brazo</option>
+                                        <option value="left">Izquierdo</option>
+                                        <option value="right">Derecho</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="grid gap-6 md:grid-cols-2">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Unidades Iniciales (ml)</label>
+                                    <input type="number" id="treatment-units" step="0.1" min="0.1" max="10" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="0.5" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Frecuencia</label>
+                                    <select id="treatment-frequency" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                        <option value="">Seleccionar frecuencia</option>
+                                        <option value="daily">Diaria</option>
+                                        <option value="weekly">Semanal</option>
+                                        <option value="biweekly">Quincenal</option>
+                                        <option value="monthly">Mensual</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="grid gap-6 md:grid-cols-2">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Inicio</label>
+                                    <input type="date" id="treatment-start" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Fin (opcional)</label>
+                                    <input type="date" id="treatment-end" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                            </div>
+
+                            <!-- Unit Progression -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Progresión de Unidades</label>
+                                <select id="treatment-progression" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                    <option value="">Seleccionar progresión</option>
+                                    <option value="constant">Constante</option>
+                                    <option value="increasing">Incremento gradual</option>
+                                    <option value="decreasing">Decremento gradual</option>
+                                </select>
+                            </div>
+
+                            <div id="unit-increase-container" class="hidden">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Incremento/Decremento por Semana (ml)</label>
+                                <input type="number" id="treatment-unit-increase" step="0.1" min="0.1" max="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="0.1">
+                            </div>
+
+                            <!-- Medication Image -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Imagen del Medicamento (opcional)</label>
+                                <input type="file" id="treatment-image" accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <div id="treatment-image-preview" class="mt-2 hidden">
+                                    <img id="treatment-image-display" class="w-32 h-32 object-cover rounded-lg border" alt="Vista previa del medicamento">
+                                </div>
+                            </div>
+
+                            <!-- Notes -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Notas Adicionales</label>
+                                <textarea id="treatment-notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Instrucciones especiales, alergias, etc."></textarea>
+                            </div>
+
+                            <div class="flex gap-4 pt-4">
+                                <button type="submit" class="bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700">
+                                    <i class="fas fa-save mr-2"></i>
+                                    Guardar Configuración
+                                </button>
+                                <button type="button" onclick="showPage('dashboard')" class="border border-gray-300 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-50">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <script>
+        /* Embedding all JavaScript functionality directly in the HTML */
+        // Global variables
+        let currentUser = null;
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+        let vaccineRecords = JSON.parse(localStorage.getItem('vaccineRecords')) || [];
+        let vaccineSchedules = JSON.parse(localStorage.getItem('vaccineSchedules')) || [];
+        let treatmentConfig = null;
+        let currentCalendarDate = new Date();
+        let selectedDate = null;
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is logged in
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                loadTreatmentConfig();
+                showMainApp();
+            } else {
+                showAuthPage();
+            }
+        });
+
+        // Authentication functions
+        function showAuthPage() {
+            document.getElementById('auth-page').classList.remove('hidden');
+            document.getElementById('main-app').classList.add('hidden');
+        }
+
+        function showMainApp() {
+            document.getElementById('auth-page').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            document.getElementById('nav-user-name').textContent = currentUser.name;
+            showPage('dashboard');
+        }
+
+        function showLoginForm() {
+            document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('register-form').classList.add('hidden');
+        }
+
+        function showRegisterForm() {
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('register-form').classList.remove('hidden');
+        }
+
+        // Login form handler
+        document.getElementById('login-form-element').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            const user = users.find(u => u.email === email && u.password === password);
+            
+            if (user) {
+                currentUser = user;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                loadTreatmentConfig();
+                showMainApp();
+                showToast('Bienvenido de vuelta!', 'success');
+            } else {
+                showToast('Credenciales incorrectas', 'error');
+            }
+        });
+
+        // Register form handler
+        document.getElementById('register-form-element').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('register-name').value;
+            const age = document.getElementById('register-age').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const role = document.getElementById('register-role').value;
+            
+            // Check if user already exists
+            if (users.find(u => u.email === email)) {
+                showToast('Ya existe una cuenta con este correo', 'error');
+                return;
+            }
+            
+            const newUser = {
+                id: Date.now().toString(),
+                name,
+                age: age ? parseInt(age) : undefined,
+                email,
+                password,
+                role,
+                createdAt: new Date().toISOString()
+            };
+            
+            users.push(newUser);
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            currentUser = newUser;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            showMainApp();
+            showToast('Cuenta creada exitosamente!', 'success');
+        });
+
+        function logout() {
+            currentUser = null;
+            treatmentConfig = null;
+            localStorage.removeItem('currentUser');
+            showAuthPage();
+            showToast('Sesión cerrada', 'info');
+        }
+
+        // Navigation functions
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                if (page.id !== 'auth-page') {
+                    page.classList.add('hidden');
+                }
+            });
+            
+            // Show selected page
+            document.getElementById(pageId + '-page').classList.remove('hidden');
+            
+            // Update navigation
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Find and activate current nav link
+            const currentNavLink = Array.from(document.querySelectorAll('.nav-link')).find(link => 
+                link.getAttribute('onclick') && link.getAttribute('onclick').includes(pageId)
+            );
+            if (currentNavLink) {
+                currentNavLink.classList.add('active');
+            }
+            
+            // Load page-specific content
+            switch(pageId) {
+                case 'dashboard':
+                    loadDashboard();
+                    break;
+                case 'register-vaccine':
+                    loadRegisterVaccine();
+                    break;
+                case 'calendar':
+                    loadCalendar();
+                    break;
+                case 'history':
+                    loadHistory();
+                    break;
+                case 'profile':
+                    loadProfile();
+                    break;
+                case 'treatment-setup':
+                    loadTreatmentSetup();
+                    break;
+            }
+            
+            // Close mobile menu if open
+            closeMobileMenu();
+        }
+
+        function toggleMobileMenu() {
+            const nav = document.getElementById('navigation');
+            nav.classList.toggle('mobile-open');
+        }
+
+        function closeMobileMenu() {
+            const nav = document.getElementById('navigation');
+            nav.classList.remove('mobile-open');
+        }
+
+        // Toast notification system
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('toast-container').appendChild(toast);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 5000);
+        }
+
+        // Treatment configuration
+        function loadTreatmentConfig() {
+            const saved = localStorage.getItem(`treatmentConfig_${currentUser.id}`);
+            if (saved) {
+                treatmentConfig = JSON.parse(saved);
+            }
+        }
+
+        // Dashboard functions
+        function loadDashboard() {
+            updateDashboardStats();
+            updateDashboardAlerts();
+            updateNextVaccineCard();
+            updateRecentRecords();
+        }
+
+        function updateDashboardStats() {
+            const userRecords = vaccineRecords.filter(r => r.patientId === currentUser.id);
+            const nextVaccine = getNextVaccine(currentUser.id);
+            const complianceRate = getComplianceRate(currentUser.id);
+            
+            // Update stats
+            document.getElementById('next-vaccine-date').textContent = nextVaccine ? 
+                new Date(nextVaccine.nextDate).toLocaleDateString('es-ES') : '-';
+            document.getElementById('compliance-rate').textContent = Math.round(complianceRate) + '%';
+            
+            // This month vaccines
+            const now = new Date();
+            const thisMonth = userRecords.filter(r => {
+                const recordDate = new Date(r.date);
+                return recordDate.getMonth() === now.getMonth() && recordDate.getFullYear() === now.getFullYear();
+            });
+            document.getElementById('month-vaccines').textContent = thisMonth.length;
+            
+            // Treatment status
+            document.getElementById('treatment-status').textContent = treatmentConfig ? 
+                (treatmentConfig.isActive ? 'Activo' : 'Inactivo') : 'No configurado';
+        }
+
+        function updateDashboardAlerts() {
+            const alertsContainer = document.getElementById('dashboard-alerts');
+            let alerts = [];
+            
+            // Check for overdue vaccines
+            const today = new Date().toISOString().split('T')[0];
+            const overdueVaccines = vaccineSchedules.filter(s => 
+                s.patientId === currentUser.id && s.isActive && s.nextDate < today
+            );
+            
+            if (overdueVaccines.length > 0) {
+                alerts.push({
+                    type: 'error',
+                    icon: 'fas fa-exclamation-triangle',
+                    title: 'Vacunas Atrasadas',
+                    message: `Tienes ${overdueVaccines.length} vacuna(s) atrasada(s)`,
+                    action: 'Ver Calendario',
+                    onclick: "showPage('calendar')"
+                });
+            }
+            
+            // Check if treatment is not configured
+            if (!treatmentConfig) {
+                alerts.push({
+                    type: 'info',
+                    icon: 'fas fa-cog',
+                    title: 'Configurar Tratamiento',
+                    message: 'Configura tu tratamiento para comenzar el seguimiento',
+                    action: 'Configurar',
+                    onclick: "showPage('treatment-setup')"
+                });
+            }
+            
+            // Render alerts
+            if (alerts.length > 0) {
+                alertsContainer.innerHTML = alerts.map(alert => `
+                    <div class="bg-white border-l-4 border-${alert.type === 'error' ? 'red' : 'blue'}-500 rounded-lg shadow p-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <i class="${alert.icon} text-${alert.type === 'error' ? 'red' : 'blue'}-600 mr-3"></i>
+                                <div>
+                                    <h4 class="font-medium text-${alert.type === 'error' ? 'red' : 'blue'}-800">${alert.title}</h4>
+                                    <p class="text-sm text-gray-600">${alert.message}</p>
+                                </div>
+                            </div>
+                            <button onclick="${alert.onclick}" class="bg-${alert.type === 'error' ? 'red' : 'blue'}-600 text-white px-4 py-2 rounded-lg hover:bg-${alert.type === 'error' ? 'red' : 'blue'}-700 text-sm">
+                                ${alert.action}
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                alertsContainer.innerHTML = '';
+            }
+        }
+
+        function updateNextVaccineCard() {
+            const nextVaccine = getNextVaccine(currentUser.id);
+            const container = document.getElementById('next-vaccine-card');
+            
+            if (nextVaccine) {
+                const date = new Date(nextVaccine.nextDate);
+                const today = new Date();
+                const isToday = date.toDateString() === today.toDateString();
+                const isTomorrow = date.toDateString() === new Date(today.getTime() + 24 * 60 * 60 * 1000).toDateString();
+                
+                let dateLabel = date.toLocaleDateString('es-ES');
+                if (isToday) dateLabel = 'Hoy';
+                else if (isTomorrow) dateLabel = 'Mañana';
+                
+                container.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <h4 class="text-lg font-semibold text-blue-600">${dateLabel}</h4>
+                            <p class="text-gray-600">${nextVaccine.units} ml - Brazo ${nextVaccine.arm === 'left' ? 'izquierdo' : 'derecho'}</p>
+                            ${treatmentConfig?.medicationName ? `<p class="text-sm text-gray-500">${treatmentConfig.medicationName}</p>` : ''}
+                        </div>
+                        <div class="text-right">
+                            <button onclick="showPage('register-vaccine')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                                Registrar
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="text-center space-y-4">
+                        <p class="text-gray-500">No hay vacunas programadas</p>
+                        ${!treatmentConfig ? `
+                            <button onclick="showPage('treatment-setup')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                                Configurar Tratamiento
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            }
+        }
+
+        function updateRecentRecords() {
+            const userRecords = vaccineRecords.filter(r => r.patientId === currentUser.id);
+            const recentRecords = userRecords.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3);
+            const container = document.getElementById('recent-records');
+            
+            if (recentRecords.length > 0) {
+                container.innerHTML = `
+                    <div class="space-y-3">
+                        ${recentRecords.map(record => `
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div>
+                                    <p class="font-medium">${new Date(record.date).toLocaleDateString('es-ES')}</p>
+                                    <p class="text-sm text-gray-600">${record.units} ml - Brazo ${record.arm === 'left' ? 'izquierdo' : 'derecho'}</p>
+                                </div>
+                                <i class="fas fa-syringe text-green-600"></i>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="pt-4 border-t">
+                        <button onclick="showPage('history')" class="w-full text-blue-600 hover:text-blue-700 text-sm font-medium">
+                            Ver Todo el Historial
+                        </button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="text-center space-y-4">
+                        <p class="text-gray-500">No hay registros aún</p>
+                        <button onclick="showPage('register-vaccine')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            Registrar Primera Vacuna
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Register vaccine functions
+        function loadRegisterVaccine() {
+            // Set today as default date
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('vaccine-date').value = today;
+            
+            // Set recommended arm and units based on treatment config and last vaccine
+            if (treatmentConfig) {
+                const lastRecord = vaccineRecords
+                    .filter(r => r.patientId === currentUser.id)
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+                
+                if (lastRecord) {
+                    // Alternate arm
+                    const recommendedArm = lastRecord.arm === 'left' ? 'right' : 'left';
+                    document.getElementById('vaccine-arm').value = recommendedArm;
+                } else {
+                    // Use starting arm from config
+                    document.getElementById('vaccine-arm').value = treatmentConfig.startingArm;
+                }
+                
+                // Set units based on next scheduled vaccine or treatment config
+                const nextVaccine = getNextVaccine(currentUser.id);
+                if (nextVaccine) {
+                    document.getElementById('vaccine-units').value = nextVaccine.units;
+                } else {
+                    document.getElementById('vaccine-units').value = treatmentConfig.initialUnits;
+                }
+            }
+            
+            // Setup form handler
+            const form = document.getElementById('vaccine-form');
+            form.removeEventListener('submit', handleVaccineRegistration);
+            form.addEventListener('submit', handleVaccineRegistration);
+        }
+
+        function handleVaccineRegistration(e) {
+            e.preventDefault();
+            
+            const date = document.getElementById('vaccine-date').value;
+            const time = document.getElementById('vaccine-time').value;
+            const arm = document.getElementById('vaccine-arm').value;
+            const units = parseFloat(document.getElementById('vaccine-units').value);
+            const notes = document.getElementById('vaccine-notes').value;
+            
+            // Get selected side effects
+            const sideEffects = Array.from(document.querySelectorAll('.side-effect-checkbox:checked'))
+                .map(cb => cb.value);
+            
+            const record = {
+                id: Date.now().toString(),
+                patientId: currentUser.id,
+                date,
+                time: time || undefined,
+                arm,
+                units,
+                sideEffects: sideEffects.length > 0 ? sideEffects : undefined,
+                notes: notes || undefined,
+                createdAt: new Date().toISOString()
+            };
+            
+            vaccineRecords.push(record);
+            localStorage.setItem('vaccineRecords', JSON.stringify(vaccineRecords));
+            
+            // Update schedule - mark as completed and generate next
+            updateScheduleAfterVaccine(record);
+            
+            showToast('Vacuna registrada exitosamente', 'success');
+            
+            // Reset form
+            document.getElementById('vaccine-form').reset();
+            
+            // Redirect to dashboard
+            setTimeout(() => {
+                showPage('dashboard');
+            }, 1500);
+        }
+
+        function updateScheduleAfterVaccine(record) {
+            // Find and deactivate the corresponding schedule
+            const scheduleIndex = vaccineSchedules.findIndex(s => 
+                s.patientId === record.patientId && 
+                s.nextDate === record.date && 
+                s.isActive
+            );
+            
+            if (scheduleIndex !== -1) {
+                vaccineSchedules[scheduleIndex].isActive = false;
+            }
+            
+            // Generate next vaccine in schedule if treatment is active
+            if (treatmentConfig && treatmentConfig.isActive) {
+                generateNextVaccineInSchedule(record);
+            }
+            
+            localStorage.setItem('vaccineSchedules', JSON.stringify(vaccineSchedules));
+        }
+
+        function generateNextVaccineInSchedule(lastRecord) {
+            const lastDate = new Date(lastRecord.date);
+            let nextDate = new Date(lastDate);
+            
+            // Calculate next date based on frequency
+            switch (treatmentConfig.frequency) {
+                case 'daily':
+                    nextDate.setDate(nextDate.getDate() + 1);
+                    break;
+                case 'weekly':
+                    nextDate.setDate(nextDate.getDate() + 7);
+                    break;
+                case 'biweekly':
+                    nextDate.setDate(nextDate.getDate() + 14);
+                    break;
+                case 'monthly':
+                    nextDate.setMonth(nextDate.getMonth() + 1);
+                    break;
+            }
+            
+            // Check if within treatment period
+            if (treatmentConfig.endDate && nextDate > new Date(treatmentConfig.endDate)) {
+                return; // Treatment period ended
+            }
+            
+            // Calculate units for next vaccine
+            let nextUnits = treatmentConfig.initialUnits;
+            const daysSinceStart = Math.floor((nextDate.getTime() - new Date(treatmentConfig.startDate).getTime()) / (24 * 60 * 60 * 1000));
+            
+            if (treatmentConfig.unitProgression === 'increasing' && treatmentConfig.unitIncrease) {
+                nextUnits = treatmentConfig.initialUnits + Math.floor(daysSinceStart / 7) * treatmentConfig.unitIncrease;
+            } else if (treatmentConfig.unitProgression === 'decreasing' && treatmentConfig.unitIncrease) {
+                nextUnits = Math.max(0.1, treatmentConfig.initialUnits - Math.floor(daysSinceStart / 7) * treatmentConfig.unitIncrease);
+            }
+            
+            // Alternate arm
+            const nextArm = lastRecord.arm === 'left' ? 'right' : 'left';
+            
+            // Create next schedule entry
+            const nextSchedule = {
+                id: Date.now().toString(),
+                patientId: currentUser.id,
+                nextDate: nextDate.toISOString().split('T')[0],
+                units: nextUnits,
+                arm: nextArm,
+                isActive: true
+            };
+            
+            vaccineSchedules.push(nextSchedule);
+        }
+
+        // Calendar functions
+        function loadCalendar() {
+            renderCalendar();
+            updateMonthlySummary();
+            updateUpcomingVaccines();
+        }
+
+        function renderCalendar() {
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+            
+            // Update month/year display
+            const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            document.getElementById('calendar-month-year').textContent = `${monthNames[month]} ${year}`;
+            
+            // Get first day of month and number of days
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDayOfWeek = firstDay.getDay();
+            
+            // Get previous month's last days
+            const prevMonth = new Date(year, month, 0);
+            const daysInPrevMonth = prevMonth.getDate();
+            
+            const calendarGrid = document.getElementById('calendar-grid');
+            calendarGrid.innerHTML = '';
+            
+            // Calculate total cells needed (6 weeks * 7 days = 42 cells)
+            const totalCells = 42;
+            let dayCount = 1;
+            let nextMonthDay = 1;
+            
+            for (let i = 0; i < totalCells; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'calendar-cell';
+                
+                let cellDate;
+                let isCurrentMonth = false;
+                let dayNumber;
+                
+                if (i < startingDayOfWeek) {
+                    // Previous month days
+                    dayNumber = daysInPrevMonth - startingDayOfWeek + i + 1;
+                    cellDate = new Date(year, month - 1, dayNumber);
+                    cell.classList.add('other-month');
+                } else if (dayCount <= daysInMonth) {
+                    // Current month days
+                    dayNumber = dayCount;
+                    cellDate = new Date(year, month, dayNumber);
+                    isCurrentMonth = true;
+                    dayCount++;
+                } else {
+                    // Next month days
+                    dayNumber = nextMonthDay;
+                    cellDate = new Date(year, month + 1, dayNumber);
+                    cell.classList.add('other-month');
+                    nextMonthDay++;
+                }
+                
+                // Check if it's today
+                const today = new Date();
+                if (cellDate.toDateString() === today.toDateString()) {
+                    cell.classList.add('today');
+                }
+                
+                // Add day number
+                cell.innerHTML = `<span class="text-sm font-medium">${dayNumber}</span>`;
+                
+                // Add vaccine indicators if current month
+                if (isCurrentMonth) {
+                    const dateString = cellDate.toISOString().split('T')[0];
+                    const vaccineInfo = getVaccineInfoForDate(dateString);
+                    
+                    if (vaccineInfo.applied) {
+                        const dot = document.createElement('div');
+                        dot.className = 'vaccine-dot bg-green-500';
+                        cell.appendChild(dot);
+                        cell.classList.add('has-vaccine');
+                    } else if (vaccineInfo.scheduled) {
+                        const dot = document.createElement('div');
+                        dot.className = 'vaccine-dot bg-blue-500';
+                        cell.appendChild(dot);
+                        cell.classList.add('has-vaccine');
+                    } else if (vaccineInfo.overdue) {
+                        const dot = document.createElement('div');
+                        dot.className = 'vaccine-dot bg-red-500';
+                        cell.appendChild(dot);
+                        cell.classList.add('has-vaccine');
+                    }
+                    
+                    // Add click handler
+                    cell.addEventListener('click', () => selectDate(cellDate));
+                    cell.style.cursor = 'pointer';
+                }
+                
+                calendarGrid.appendChild(cell);
+            }
+        }
+
+        function getVaccineInfoForDate(dateString) {
+            const applied = vaccineRecords.some(r => r.patientId === currentUser.id && r.date === dateString);
+            const scheduled = vaccineSchedules.some(s => s.patientId === currentUser.id && s.nextDate === dateString && s.isActive);
+            const today = new Date().toISOString().split('T')[0];
+            const overdue = scheduled && dateString < today;
+            
+            return { applied, scheduled, overdue };
+        }
+
+        function selectDate(date) {
+            selectedDate = date;
+            const dateString = date.toISOString().split('T')[0];
+            
+            // Update selected day title
+            document.getElementById('selected-day-title').textContent = date.toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            // Get vaccine info for selected date
+            const appliedVaccines = vaccineRecords.filter(r => r.patientId === currentUser.id && r.date === dateString);
+            const scheduledVaccines = vaccineSchedules.filter(s => s.patientId === currentUser.id && s.nextDate === dateString && s.isActive);
+            
+            const content = document.getElementById('selected-day-content');
+            
+            if (appliedVaccines.length > 0 || scheduledVaccines.length > 0) {
+                let html = '';
+                
+                // Applied vaccines
+                if (appliedVaccines.length > 0) {
+                    html += `
+                        <div class="mb-4">
+                            <h4 class="font-medium text-green-700 mb-2 flex items-center gap-2">
+                                <i class="fas fa-check-circle"></i>
+                                Vacunas Aplicadas
+                            </h4>
+                            <div class="space-y-2">
+                                ${appliedVaccines.map(vaccine => `
+                                    <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="font-medium">${vaccine.units} ml</p>
+                                                <p class="text-sm text-green-700">Brazo ${vaccine.arm === 'left' ? 'izquierdo' : 'derecho'}</p>
+                                                ${vaccine.time ? `<p class="text-sm text-green-600">${vaccine.time}</p>` : ''}
+                                            </div>
+                                            <i class="fas fa-syringe text-green-600"></i>
+                                        </div>
+                                        ${vaccine.notes ? `<p class="text-sm text-green-600 mt-2">${vaccine.notes}</p>` : ''}
+                                        ${vaccine.sideEffects && vaccine.sideEffects.length > 0 ? 
+                                            `<p class="text-sm text-green-600 mt-1">Reacciones: ${vaccine.sideEffects.join(', ')}</p>` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Scheduled vaccines
+                if (scheduledVaccines.length > 0) {
+                    const isOverdue = dateString < new Date().toISOString().split('T')[0];
+                    const colorClass = isOverdue ? 'red' : 'blue';
+                    
+                    html += `
+                        <div class="mb-4">
+                            <h4 class="font-medium text-${colorClass}-700 mb-2 flex items-center gap-2">
+                                <i class="fas fa-clock"></i>
+                                ${isOverdue ? 'Vacunas Atrasadas' : 'Vacunas Programadas'}
+                            </h4>
+                            <div class="space-y-2">
+                                ${scheduledVaccines.map(vaccine => `
+                                    <div class="p-3 bg-${colorClass}-50 border border-${colorClass}-200 rounded-lg">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="font-medium">${vaccine.units} ml</p>
+                                                <p class="text-sm text-${colorClass}-700">Brazo ${vaccine.arm === 'left' ? 'izquierdo' : 'derecho'}</p>
+                                                ${treatmentConfig?.medicationName ? `<p class="text-sm text-${colorClass}-600">${treatmentConfig.medicationName}</p>` : ''}
+                                            </div>
+                                            <i class="fas fa-calendar text-${colorClass}-600"></i>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Add action button if it's today or future date
+                const today = new Date().toISOString().split('T')[0];
+                if (dateString >= today && scheduledVaccines.length > 0) {
+                    html += `
+                        <button onclick="showPage('register-vaccine')" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 mt-4">
+                            Registrar Vacuna
+                        </button>
+                    `;
+                }
+                
+                content.innerHTML = html;
+            } else {
+                content.innerHTML = `
+                    <div class="text-center space-y-4">
+                        <p class="text-gray-500">No hay vacunas programadas para este día</p>
+                        <button onclick="showPage('register-vaccine')" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
+                            Registrar Vacuna
+                        </button>
+                    </div>
+                `;
+            }
+            
+            // Highlight selected date in calendar
+            document.querySelectorAll('.calendar-cell').forEach(cell => {
+                cell.classList.remove('selected');
+            });
+            
+            // Find and highlight the selected cell
+            const cells = document.querySelectorAll('.calendar-cell');
+            cells.forEach(cell => {
+                const cellText = cell.querySelector('span')?.textContent;
+                if (cellText && parseInt(cellText) === date.getDate() && !cell.classList.contains('other-month')) {
+                    cell.classList.add('selected');
+                }
+            });
+        }
+
+        function changeMonth(direction) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction);
+            renderCalendar();
+            updateMonthlySummary();
+            updateUpcomingVaccines();
+            
+            // Clear selected date when changing months
+            selectedDate = null;
+            document.getElementById('selected-day-title').textContent = 'Selecciona un día';
+            document.getElementById('selected-day-content').innerHTML = 
+                '<p class="text-gray-500 text-center">Haz clic en un día del calendario para ver los detalles</p>';
+        }
+
+        function goToToday() {
+            currentCalendarDate = new Date();
+            renderCalendar();
+            updateMonthlySummary();
+            updateUpcomingVaccines();
+            
+            // Auto-select today
+            selectDate(new Date());
+        }
+
+        function updateMonthlySummary() {
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+            
+            // Get records for current month
+            const monthlyRecords = vaccineRecords.filter(r => {
+                const recordDate = new Date(r.date);
+                return r.patientId === currentUser.id && 
+                       recordDate.getFullYear() === year && 
+                       recordDate.getMonth() === month;
+            });
+            
+            // Get schedules for current month
+            const monthlySchedules = vaccineSchedules.filter(s => {
+                const scheduleDate = new Date(s.nextDate);
+                return s.patientId === currentUser.id && 
+                       scheduleDate.getFullYear() === year && 
+                       scheduleDate.getMonth() === month && 
+                       s.isActive;
+            });
+            
+            // Calculate overdue vaccines
+            const today = new Date().toISOString().split('T')[0];
+            const overdueSchedules = monthlySchedules.filter(s => s.nextDate < today);
+            
+            // Update summary
+            document.getElementById('monthly-applied').textContent = monthlyRecords.length;
+            document.getElementById('monthly-scheduled').textContent = monthlySchedules.length - overdueSchedules.length;
+            document.getElementById('monthly-overdue').textContent = overdueSchedules.length;
+            
+            // Calculate compliance
+            const expectedVaccines = monthlySchedules.length;
+            const appliedVaccines = monthlyRecords.length;
+            const compliance = expectedVaccines > 0 ? Math.round((appliedVaccines / expectedVaccines) * 100) : 100;
+            
+            document.getElementById('monthly-compliance').textContent = `${compliance}%`;
+            document.getElementById('monthly-compliance-bar').style.width = `${compliance}%`;
+        }
+
+        function updateUpcomingVaccines() {
+            const today = new Date();
+            const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+            
+            const upcomingVaccines = vaccineSchedules
+                .filter(s => {
+                    const scheduleDate = new Date(s.nextDate);
+                    return s.patientId === currentUser.id && s.isActive && 
+                           scheduleDate >= today && scheduleDate <= nextWeek;
+                })
+                .sort((a, b) => new Date(a.nextDate) - new Date(b.nextDate));
+            
+            const container = document.getElementById('upcoming-vaccines');
+            
+            if (upcomingVaccines.length > 0) {
+                container.innerHTML = `
+                    <div class="space-y-3">
+                        ${upcomingVaccines.map(vaccine => {
+                            const date = new Date(vaccine.nextDate);
+                            const isToday = date.toDateString() === today.toDateString();
+                            const isTomorrow = date.toDateString() === new Date(today.getTime() + 24 * 60 * 60 * 1000).toDateString();
+                            
+                            let dateLabel = date.toLocaleDateString('es-ES');
+                            if (isToday) dateLabel = 'Hoy';
+                            else if (isTomorrow) dateLabel = 'Mañana';
+                            
+                            return `
+                                <div class="p-3 border rounded-lg ${isToday ? 'bg-blue-50 border-blue-200' : 'hover:bg-gray-50'}">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="font-medium">${dateLabel}</p>
+                                            <p class="text-sm text-gray-600">${vaccine.units} ml - Brazo ${vaccine.arm === 'left' ? 'izquierdo' : 'derecho'}</p>
+                                            ${treatmentConfig?.medicationName ? `<p class="text-sm text-gray-500">${treatmentConfig.medicationName}</p>` : ''}
+                                        </div>
+                                        <i class="fas fa-syringe text-blue-600"></i>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            } else {
+                container.innerHTML = '<p class="text-gray-500 text-center">No hay vacunas próximas</p>';
+            }
+        }
+
+        // History functions
+        function loadHistory() {
+            updateHistoryStats();
+            renderHistoryList();
+            setupHistoryFilters();
+        }
+
+        function updateHistoryStats() {
+            const userRecords = vaccineRecords.filter(r => r.patientId === currentUser.id);
+            const now = new Date();
+            const thisMonth = userRecords.filter(r => {
+                const recordDate = new Date(r.date);
+                return recordDate.getMonth() === now.getMonth() && recordDate.getFullYear() === now.getFullYear();
+            });
+            
+            const leftArmCount = userRecords.filter(r => r.arm === 'left').length;
+            const rightArmCount = userRecords.filter(r => r.arm === 'right').length;
+            
+            document.getElementById('total-vaccines').textContent = userRecords.length;
+            document.getElementById('this-month-vaccines').textContent = thisMonth.length;
+            document.getElementById('left-arm-vaccines').textContent = leftArmCount;
+            document.getElementById('right-arm-vaccines').textContent = rightArmCount;
+        }
+
+        function renderHistoryList(filteredRecords = null) {
+            const records = filteredRecords || vaccineRecords.filter(r => r.patientId === currentUser.id);
+            const sortedRecords = records.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            const container = document.getElementById('history-list');
+            
+            if (sortedRecords.length === 0) {
+                container.innerHTML = `
+                    <div class="p-8 text-center">
+                        <i class="fas fa-syringe text-gray-300 text-4xl mb-4"></i>
+                        <p class="text-gray-500">No hay registros de vacunas</p>
+                        <button onclick="showPage('register-vaccine')" class="mt-4 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
+                            Registrar Primera Vacuna
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = sortedRecords.map(record => `
+                <div class="p-6 hover:bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-syringe text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">${new Date(record.date).toLocaleDateString('es-ES', {
+                                        weekday: 'long',
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    })}</h4>
+                                    <p class="text-gray-600">${record.units} ml - Brazo ${record.arm === 'left' ? 'izquierdo' : 'derecho'}</p>
+                                    ${record.time ? `<p class="text-sm text-gray-500">Hora: ${record.time}</p>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            ${record.sideEffects && record.sideEffects.length > 0 ? 
+                                `<p class="text-sm text-orange-600 mb-1">Reacciones: ${record.sideEffects.join(', ')}</p>` :
+                                '<p class="text-sm text-green-600 mb-1">Sin reacciones</p>'
+                            }
+                            ${record.notes ? `<p class="text-sm text-gray-500">${record.notes}</p>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function setupHistoryFilters() {
+            // Set default date range (last 3 months)
+            const today = new Date();
+            const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
+            
+            document.getElementById('filter-from').value = threeMonthsAgo.toISOString().split('T')[0];
+            document.getElementById('filter-to').value = today.toISOString().split('T')[0];
+        }
+
+        function applyHistoryFilters() {
+            const fromDate = document.getElementById('filter-from').value;
+            const toDate = document.getElementById('filter-to').value;
+            const armFilter = document.getElementById('filter-arm').value;
+            
+            let filteredRecords = vaccineRecords.filter(r => r.patientId === currentUser.id);
+            
+            if (fromDate) {
+                filteredRecords = filteredRecords.filter(r => r.date >= fromDate);
+            }
+            
+            if (toDate) {
+                filteredRecords = filteredRecords.filter(r => r.date <= toDate);
+            }
+            
+            if (armFilter) {
+                filteredRecords = filteredRecords.filter(r => r.arm === armFilter);
+            }
+            
+            renderHistoryList(filteredRecords);
+        }
+
+        function exportHistory() {
+            const userRecords = vaccineRecords.filter(r => r.patientId === currentUser.id);
+            
+            if (userRecords.length === 0) {
+                showToast('No hay registros para exportar', 'info');
+                return;
+            }
+            
+            // Create CSV content
+            const headers = ['Fecha', 'Brazo', 'Unidades (ml)', 'Hora', 'Notas', 'Reacciones'];
+            const csvContent = [
+                headers.join(','),
+                ...userRecords.map(record => [
+                    record.date,
+                    record.arm === 'left' ? 'Izquierdo' : 'Derecho',
+                    record.units,
+                    record.time || '',
+                    record.notes || '',
+                    record.sideEffects ? record.sideEffects.join('; ') : ''
+                ].join(','))
+            ].join('\n');
+            
+            // Download CSV
+            downloadFile(csvContent, `historial_vacunas_${currentUser.name}_${new Date().toISOString().split('T')[0]}.csv`, 'text/csv');
+            showToast('Historial exportado exitosamente', 'success');
+        }
+
+        // Profile functions
+        function loadProfile() {
+            populateProfileForm();
+            updateProfileStats();
+            setupProfilePicture();
+            updateTreatmentSummary();
+            loadNotificationSettings();
+            loadPrivacySettings();
+            load2FASettings();
+        }
+
+        function populateProfileForm() {
+            document.getElementById('profile-name').value = currentUser.name || '';
+            document.getElementById('profile-age').value = currentUser.age || '';
+            document.getElementById('profile-email').value = currentUser.email || '';
+            document.getElementById('profile-emergency').value = currentUser.emergencyContact || '';
+            document.getElementById('profile-role').value = currentUser.role || 'patient';
+            
+            // Setup form submission
+            const form = document.getElementById('profile-form');
+            form.removeEventListener('submit', handleProfileUpdate);
+            form.addEventListener('submit', handleProfileUpdate);
+        }
+
+        function handleProfileUpdate(e) {
+            e.preventDefault();
+            
+            const updatedData = {
+                name: document.getElementById('profile-name').value,
+                age: document.getElementById('profile-age').value ? parseInt(document.getElementById('profile-age').value) : undefined,
+                email: document.getElementById('profile-email').value,
+                emergencyContact: document.getElementById('profile-emergency').value
+            };
+            
+            // Update current user
+            Object.assign(currentUser, updatedData);
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            // Update in users array
+            const userIndex = users.findIndex(u => u.id === currentUser.id);
+            if (userIndex !== -1) {
+                Object.assign(users[userIndex], updatedData);
+                localStorage.setItem('users', JSON.stringify(users));
+            }
+            
+            showToast('Perfil actualizado exitosamente', 'success');
+        }
+
+        function resetProfileForm() {
+            populateProfileForm();
+        }
+
+        function updateProfileStats() {
+            const userRecords = vaccineRecords.filter(r => r.patientId === currentUser.id);
+            const complianceRate = getComplianceRate(currentUser.id);
+            
+            const lastVaccine = userRecords.length > 0 ? 
+                userRecords.sort((a, b) => new Date(b.date) - new Date(a.date))[0] : null;
+            
+            const nextVaccine = getNextVaccine(currentUser.id);
+            
+            document.getElementById('profile-total-vaccines').textContent = userRecords.length;
+            document.getElementById('profile-compliance').textContent = `${Math.round(complianceRate)}%`;
+            document.getElementById('profile-last-vaccine').textContent = lastVaccine ? 
+                new Date(lastVaccine.date).toLocaleDateString('es-ES') : '-';
+            document.getElementById('profile-next-vaccine').textContent = nextVaccine ? 
+                new Date(nextVaccine.nextDate).toLocaleDateString('es-ES') : '-';
+        }
+
+        function setupProfilePicture() {
+            const input = document.getElementById('profile-picture-input');
+            const img = document.getElementById('profile-picture');
+            const placeholder = document.getElementById('profile-picture-placeholder');
+            
+            // Load existing profile picture
+            if (currentUser.profilePhoto) {
+                img.src = currentUser.profilePhoto;
+                img.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+            }
+            
+            input.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const imageData = e.target.result;
+                        img.src = imageData;
+                        img.classList.remove('hidden');
+                        placeholder.classList.add('hidden');
+                        
+                        // Save to user profile
+                        currentUser.profilePhoto = imageData;
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        
+                        // Update in users array
+                        const userIndex = users.findIndex(u => u.id === currentUser.id);
+                        if (userIndex !== -1) {
+                            users[userIndex].profilePhoto = imageData;
+                            localStorage.setItem('users', JSON.stringify(users));
+                        }
+                        
+                        showToast('Foto de perfil actualizada', 'success');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        function updateTreatmentSummary() {
+            const container = document.getElementById('treatment-summary');
+            
+            if (treatmentConfig) {
+                container.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Medicamento</p>
+                                <p class="text-lg">${treatmentConfig.medicationName}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Frecuencia</p>
+                                <p class="text-lg capitalize">${treatmentConfig.frequency}</p>
+                            </div>
+                        </div>
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Unidades iniciales</p>
+                                <p class="text-lg">${treatmentConfig.initialUnits} ml</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Brazo inicial</p>
+                                <p class="text-lg capitalize">${treatmentConfig.startingArm === 'left' ? 'Izquierdo' : 'Derecho'}</p>
+                            </div>
+                        </div>
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Fecha de inicio</p>
+                                <p class="text-lg">${new Date(treatmentConfig.startDate).toLocaleDateString('es-ES')}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Estado</p>
+                                <span class="inline-flex px-2 py-1 text-sm rounded-full ${treatmentConfig.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                    ${treatmentConfig.isActive ? 'Activo' : 'Inactivo'}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="pt-4">
+                            <button onclick="showPage('treatment-setup')" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
+                                Editar Configuración
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="text-center space-y-4">
+                        <p class="text-gray-500">No has configurado tu tratamiento aún</p>
+                        <button onclick="showPage('treatment-setup')" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
+                            Configurar Tratamiento
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Treatment setup functions
+        function loadTreatmentSetup() {
+            setupTreatmentForm();
+            populateTreatmentForm();
+        }
+
+        function setupTreatmentForm() {
+            // Set today as default start date
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('treatment-start').value = today;
+            
+            // Setup progression change handler
+            const progressionSelect = document.getElementById('treatment-progression');
+            const unitIncreaseContainer = document.getElementById('unit-increase-container');
+            
+            progressionSelect.addEventListener('change', (e) => {
+                if (e.target.value === 'increasing' || e.target.value === 'decreasing') {
+                    unitIncreaseContainer.classList.remove('hidden');
+                } else {
+                    unitIncreaseContainer.classList.add('hidden');
+                }
+            });
+            
+            // Setup image preview
+            const imageInput = document.getElementById('treatment-image');
+            const imagePreview = document.getElementById('treatment-image-preview');
+            const imageDisplay = document.getElementById('treatment-image-display');
+            
+            imageInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        imageDisplay.src = e.target.result;
+                        imagePreview.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Setup form submission
+            const form = document.getElementById('treatment-form');
+            form.removeEventListener('submit', handleTreatmentSetup);
+            form.addEventListener('submit', handleTreatmentSetup);
+        }
+
+        function populateTreatmentForm() {
+            if (treatmentConfig) {
+                document.getElementById('treatment-medication').value = treatmentConfig.medicationName || '';
+                document.getElementById('treatment-arm').value = treatmentConfig.startingArm || '';
+                document.getElementById('treatment-units').value = treatmentConfig.initialUnits || '';
+                document.getElementById('treatment-frequency').value = treatmentConfig.frequency || '';
+                document.getElementById('treatment-start').value = treatmentConfig.startDate || '';
+                document.getElementById('treatment-end').value = treatmentConfig.endDate || '';
+                document.getElementById('treatment-progression').value = treatmentConfig.unitProgression || '';
+                document.getElementById('treatment-unit-increase').value = treatmentConfig.unitIncrease || '';
+                document.getElementById('treatment-notes').value = treatmentConfig.notes || '';
+                
+                if (treatmentConfig.medicationImage) {
+                    document.getElementById('treatment-image-display').src = treatmentConfig.medicationImage;
+                    document.getElementById('treatment-image-preview').classList.remove('hidden');
+                }
+                
+                // Trigger progression change to show/hide unit increase field
+                if (treatmentConfig.unitProgression === 'increasing' || treatmentConfig.unitProgression === 'decreasing') {
+                    document.getElementById('unit-increase-container').classList.remove('hidden');
+                }
+            }
+        }
+
+        function handleTreatmentSetup(e) {
+            e.preventDefault();
+            
+            const medicationImage = document.getElementById('treatment-image-display').src;
+            
+            const config = {
+                patientId: currentUser.id,
+                medicationName: document.getElementById('treatment-medication').value,
+                medicationImage: medicationImage !== window.location.href ? medicationImage : undefined,
+                startingArm: document.getElementById('treatment-arm').value,
+                initialUnits: parseFloat(document.getElementById('treatment-units').value),
+                frequency: document.getElementById('treatment-frequency').value,
+                startDate: document.getElementById('treatment-start').value,
+                endDate: document.getElementById('treatment-end').value || undefined,
+                unitProgression: document.getElementById('treatment-progression').value,
+                unitIncrease: document.getElementById('treatment-unit-increase').value ? 
+                    parseFloat(document.getElementById('treatment-unit-increase').value) : undefined,
+                notes: document.getElementById('treatment-notes').value || undefined,
+                isActive: true
+            };
+            
+            // Save treatment config
+            if (treatmentConfig) {
+                // Update existing
+                Object.assign(treatmentConfig, config);
+            } else {
+                // Create new
+                treatmentConfig = {
+                    ...config,
+                    id: Date.now().toString()
+                };
+            }
+            
+            localStorage.setItem(`treatmentConfig_${currentUser.id}`, JSON.stringify(treatmentConfig));
+            
+            // Generate new schedule
+            generateScheduleFromConfig(treatmentConfig);
+            
+            showToast('Configuración de tratamiento guardada', 'success');
+            
+            setTimeout(() => {
+                showPage('dashboard');
+            }, 1500);
+        }
+
+        function generateScheduleFromConfig(config) {
+            // Simple schedule generation - create weekly schedule for next 3 months
+            const schedules = [];
+            const startDate = new Date(config.startDate);
+            const endDate = config.endDate ? new Date(config.endDate) : new Date(startDate.getTime() + 90 * 24 * 60 * 60 * 1000);
+            
+            const currentDate = new Date(startDate);
+            let currentArm = config.startingArm;
+            let scheduleId = 1;
+            
+            while (currentDate <= endDate) {
+                let shouldSchedule = false;
+                
+                switch (config.frequency) {
+                    case 'daily':
+                        shouldSchedule = true;
+                        break;
+                    case 'weekly':
+                        shouldSchedule = currentDate.getDay() === startDate.getDay();
+                        break;
+                    case 'biweekly':
+                        const weeksDiff = Math.floor((currentDate.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+                        shouldSchedule = weeksDiff % 2 === 0 && currentDate.getDay() === startDate.getDay();
+                        break;
+                    case 'monthly':
+                        shouldSchedule = currentDate.getDate() === startDate.getDate();
+                        break;
+                }
+                
+                if (shouldSchedule) {
+                    let units = config.initialUnits;
+                    const daysSinceStart = Math.floor((currentDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
+                    
+                    if (config.unitProgression === 'increasing' && config.unitIncrease) {
+                        units = config.initialUnits + Math.floor(daysSinceStart / 7) * config.unitIncrease;
+                    } else if (config.unitProgression === 'decreasing' && config.unitIncrease) {
+                        units = Math.max(0.1, config.initialUnits - Math.floor(daysSinceStart / 7) * config.unitIncrease);
+                    }
+                    
+                    schedules.push({
+                        id: `${config.id}_${scheduleId++}`,
+                        patientId: config.patientId,
+                        nextDate: currentDate.toISOString().split('T')[0],
+                        units: units,
+                        arm: currentArm,
+                        isActive: currentDate >= new Date()
+                    });
+                    
+                    currentArm = currentArm === 'left' ? 'right' : 'left';
+                }
+                
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            
+            vaccineSchedules.length = 0;
+            vaccineSchedules.push(...schedules);
+            localStorage.setItem('vaccineSchedules', JSON.stringify(vaccineSchedules));
+        }
+
+        // Utility functions
+        function getComplianceRate(patientId) {
+            const userRecords = vaccineRecords.filter(r => r.patientId === patientId);
+            const userSchedules = vaccineSchedules.filter(s => s.patientId === patientId && s.isActive);
+            
+            const expectedVaccines = userSchedules.length;
+            const appliedVaccines = userRecords.length;
+            
+            return expectedVaccines > 0 ? (appliedVaccines / expectedVaccines) * 100 : 100;
+        }
+
+        function getNextVaccine(patientId) {
+            return vaccineSchedules.find(s => s.patientId === patientId && s.isActive);
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Notification settings
+        function saveNotificationSettings() {
+            const settings = {
+                vaccines: document.getElementById('notifications-vaccines').checked,
+                delays: document.getElementById('notifications-delays').checked,
+                weekly: document.getElementById('notifications-weekly').checked,
+                timing: document.getElementById('notification-timing').value
+            };
+            
+            localStorage.setItem(`notificationSettings_${currentUser.id}`, JSON.stringify(settings));
+            
+            // Request notification permission if enabled
+            if (settings.vaccines || settings.delays || settings.weekly) {
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            showToast('Configuración de notificaciones guardada', 'success');
+                        } else {
+                            showToast('Configuración guardada, pero las notificaciones están bloqueadas', 'info');
+                        }
+                    });
+                } else {
+                    showToast('Configuración de notificaciones guardada', 'success');
+                }
+            } else {
+                showToast('Configuración de notificaciones guardada', 'success');
+            }
+        }
+
+        function loadNotificationSettings() {
+            const settings = JSON.parse(localStorage.getItem(`notificationSettings_${currentUser.id}`)) || {
+                vaccines: true,
+                delays: true,
+                weekly: false,
+                timing: '60'
+            };
+            
+            document.getElementById('notifications-vaccines').checked = settings.vaccines;
+            document.getElementById('notifications-delays').checked = settings.delays;
+            document.getElementById('notifications-weekly').checked = settings.weekly;
+            document.getElementById('notification-timing').value = settings.timing;
+        }
+
+        // Privacy settings
+        function savePrivacySettings() {
+            const settings = {
+                anonymous: document.getElementById('privacy-anonymous').checked,
+                doctors: document.getElementById('privacy-doctors').checked,
+                remember: document.getElementById('privacy-remember').checked,
+                retention: document.getElementById('privacy-retention').value
+            };
+            
+            localStorage.setItem(`privacySettings_${currentUser.id}`, JSON.stringify(settings));
+            showToast('Configuración de privacidad guardada', 'success');
+        }
+
+        function loadPrivacySettings() {
+            const settings = JSON.parse(localStorage.getItem(`privacySettings_${currentUser.id}`)) || {
+                anonymous: false,
+                doctors: true,
+                remember: true,
+                retention: '5'
+            };
+            
+            document.getElementById('privacy-anonymous').checked = settings.anonymous;
+            document.getElementById('privacy-doctors').checked = settings.doctors;
+            document.getElementById('privacy-remember').checked = settings.remember;
+            document.getElementById('privacy-retention').value = settings.retention;
+        }
+
+        // Export data functions
+        function exportData(format) {
+            const userRecords = vaccineRecords.filter(r => r.patientId === currentUser.id);
+            const includeImages = document.getElementById('export-include-images').checked;
+            const includeNotes = document.getElementById('export-include-notes').checked;
+            const includeSettings = document.getElementById('export-include-settings').checked;
+            
+            if (userRecords.length === 0) {
+                showToast('No hay datos para exportar', 'info');
+                return;
+            }
+            
+            const timestamp = new Date().toISOString().split('T')[0];
+            const filename = `vacuna_tracker_${currentUser.name}_${timestamp}`;
+            
+            switch (format) {
+                case 'json':
+                    exportJSON(userRecords, includeImages, includeNotes, includeSettings, filename);
+                    break;
+                case 'csv':
+                    exportCSV(userRecords, includeNotes, filename);
+                    break;
+                case 'pdf':
+                    exportPDF(userRecords, includeNotes, filename);
+                    break;
+                case 'backup':
+                    exportBackup(includeImages, includeNotes, includeSettings, filename);
+                    break;
+            }
+        }
+
+        function exportJSON(records, includeImages, includeNotes, includeSettings, filename) {
+            const data = {
+                user: {
+                    name: currentUser.name,
+                    email: currentUser.email,
+                    age: currentUser.age,
+                    role: currentUser.role,
+                    emergencyContact: currentUser.emergencyContact,
+                    ...(includeImages && currentUser.profilePhoto && { profilePhoto: currentUser.profilePhoto })
+                },
+                records: records.map(record => ({
+                    date: record.date,
+                    arm: record.arm,
+                    units: record.units,
+                    time: record.time,
+                    ...(includeNotes && { notes: record.notes, sideEffects: record.sideEffects })
+                })),
+                treatment: treatmentConfig,
+                ...(includeSettings && {
+                    notificationSettings: JSON.parse(localStorage.getItem(`notificationSettings_${currentUser.id}`)) || {},
+                    privacySettings: JSON.parse(localStorage.getItem(`privacySettings_${currentUser.id}`)) || {}
+                }),
+                exportDate: new Date().toISOString()
+            };
+            
+            downloadFile(JSON.stringify(data, null, 2), `${filename}.json`, 'application/json');
+            showToast('Datos exportados en formato JSON', 'success');
+        }
+
+        function exportCSV(records, includeNotes, filename) {
+            const headers = ['Fecha', 'Brazo', 'Unidades (ml)', 'Hora'];
+            if (includeNotes) {
+                headers.push('Notas', 'Reacciones');
+            }
+            
+            const csvContent = [
+                headers.join(','),
+                ...records.map(record => {
+                    const row = [
+                        record.date,
+                        record.arm === 'left' ? 'Izquierdo' : 'Derecho',
+                        record.units,
+                        record.time || ''
+                    ];
+                    if (includeNotes) {
+                        row.push(record.notes || '', record.sideEffects ? record.sideEffects.join('; ') : '');
+                    }
+                    return row.join(',');
+                })
+            ].join('\n');
+            
+            downloadFile(csvContent, `${filename}.csv`, 'text/csv');
+            showToast('Datos exportados en formato CSV', 'success');
+        }
+
+        function exportPDF(records, includeNotes, filename) {
+            // Simple PDF generation using HTML and print
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Reporte Médico - ${currentUser.name}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        .header { text-align: center; margin-bottom: 30px; }
+                        .patient-info { margin-bottom: 20px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f2f2f2; }
+                        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>Reporte Médico de Vacunas</h1>
+                        <h2>${currentUser.name}</h2>
+                    </div>
+                    
+                    <div class="patient-info">
+                        <p><strong>Paciente:</strong> ${currentUser.name}</p>
+                        <p><strong>Email:</strong> ${currentUser.email}</p>
+                        ${currentUser.age ? `<p><strong>Edad:</strong> ${currentUser.age} años</p>` : ''}
+                        ${currentUser.emergencyContact ? `<p><strong>Contacto de Emergencia:</strong> ${currentUser.emergencyContact}</p>` : ''}
+                        <p><strong>Fecha del Reporte:</strong> ${new Date().toLocaleDateString('es-ES')}</p>
+                    </div>
+                    
+                    <h3>Historial de Vacunas</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Brazo</th>
+                                <th>Unidades (ml)</th>
+                                <th>Hora</th>
+                                ${includeNotes ? '<th>Reacciones</th><th>Notas</th>' : ''}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${records.map(record => `
+                                <tr>
+                                    <td>${new Date(record.date).toLocaleDateString('es-ES')}</td>
+                                    <td>${record.arm === 'left' ? 'Izquierdo' : 'Derecho'}</td>
+                                    <td>${record.units}</td>
+                                    <td>${record.time || '-'}</td>
+                                    ${includeNotes ? `
+                                        <td>${record.sideEffects ? record.sideEffects.join(', ') : 'Ninguna'}</td>
+                                        <td>${record.notes || '-'}</td>
+                                    ` : ''}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    
+                    <div class="footer">
+                        <p>Reporte generado por Vacuna Tracker - ${new Date().toLocaleString('es-ES')}</p>
+                    </div>
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            printWindow.print();
+            showToast('Reporte PDF generado', 'success');
+        }
+
+        function exportBackup(includeImages, includeNotes, includeSettings, filename) {
+            const backupData = {
+                version: '1.0',
+                user: currentUser,
+                records: vaccineRecords.filter(r => r.patientId === currentUser.id),
+                schedules: vaccineSchedules.filter(s => s.patientId === currentUser.id),
+                treatment: treatmentConfig,
+                ...(includeSettings && {
+                    notificationSettings: JSON.parse(localStorage.getItem(`notificationSettings_${currentUser.id}`)) || {},
+                    privacySettings: JSON.parse(localStorage.getItem(`privacySettings_${currentUser.id}`)) || {}
+                }),
+                exportDate: new Date().toISOString()
+            };
+            
+            downloadFile(JSON.stringify(backupData, null, 2), `${filename}_backup.json`, 'application/json');
+            showToast('Respaldo completo exportado', 'success');
+        }
+
+        // 2FA functions
+        function load2FASettings() {
+            const twoFAEnabled = localStorage.getItem(`2fa_enabled_${currentUser.id}`) === 'true';
+            
+            if (twoFAEnabled) {
+                document.getElementById('2fa-disabled').classList.add('hidden');
+                document.getElementById('2fa-enabled').classList.remove('hidden');
+                loadBackupCodes();
+            } else {
+                document.getElementById('2fa-disabled').classList.remove('hidden');
+                document.getElementById('2fa-enabled').classList.add('hidden');
+            }
+        }
+
+        function enable2FA() {
+            document.getElementById('2fa-disabled').classList.add('hidden');
+            document.getElementById('2fa-setup').classList.remove('hidden');
+            
+            // Generate secret and QR code
+            const secret = generateSecret();
+            localStorage.setItem(`2fa_secret_${currentUser.id}`, secret);
+            
+            document.getElementById('manual-code').textContent = secret;
+            generateQRCode(secret);
+        }
+
+        function generateSecret() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+            let secret = '';
+            for (let i = 0; i < 32; i++) {
+                secret += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return secret;
+        }
+
+        function generateQRCode(secret) {
+            const canvas = document.getElementById('qr-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Simple QR code placeholder (in a real app, use a QR code library)
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, 192, 192);
+            ctx.fillStyle = '#fff';
+            ctx.font = '12px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('QR Code', 96, 96);
+            ctx.fillText('Placeholder', 96, 110);
+        }
+
+        function verify2FA() {
+            const code = document.getElementById('2fa-code').value;
+            
+            // Simple verification (in a real app, use TOTP library)
+            if (code.length === 6 && /^\d+$/.test(code)) {
+                localStorage.setItem(`2fa_enabled_${currentUser.id}`, 'true');
+                generateBackupCodes();
+                
+                document.getElementById('2fa-setup').classList.add('hidden');
+                document.getElementById('2fa-enabled').classList.remove('hidden');
+                
+                showToast('2FA activado exitosamente', 'success');
+                loadBackupCodes();
+            } else {
+                showToast('Código inválido', 'error');
+            }
+        }
+
+        function cancel2FASetup() {
+            document.getElementById('2fa-setup').classList.add('hidden');
+            document.getElementById('2fa-disabled').classList.remove('hidden');
+            localStorage.removeItem(`2fa_secret_${currentUser.id}`);
+        }
+
+        function disable2FA() {
+            if (confirm('¿Estás seguro de que quieres desactivar la autenticación de dos factores?')) {
+                localStorage.removeItem(`2fa_enabled_${currentUser.id}`);
+                localStorage.removeItem(`2fa_secret_${currentUser.id}`);
+                localStorage.removeItem(`2fa_backup_codes_${currentUser.id}`);
+                
+                document.getElementById('2fa-enabled').classList.add('hidden');
+                document.getElementById('2fa-disabled').classList.remove('hidden');
+                
+                showToast('2FA desactivado', 'info');
+            }
+        }
+
+        function generateBackupCodes() {
+            const codes = [];
+            for (let i = 0; i < 10; i++) {
+                codes.push(Math.random().toString(36).substr(2, 8).toUpperCase());
+            }
+            localStorage.setItem(`2fa_backup_codes_${currentUser.id}`, JSON.stringify(codes));
+            return codes;
+        }
+
+        function loadBackupCodes() {
+            const codes = JSON.parse(localStorage.getItem(`2fa_backup_codes_${currentUser.id}`)) || [];
+            const container = document.getElementById('backup-codes');
+            
+            container.innerHTML = codes.map(code => 
+                `<div class="p-2 bg-gray-100 rounded text-center">${code}</div>`
+            ).join('');
+        }
+
+        function generateNewBackupCodes() {
+            if (confirm('¿Generar nuevos códigos de respaldo? Los códigos actuales dejarán de funcionar.')) {
+                generateBackupCodes();
+                loadBackupCodes();
+                showToast('Nuevos códigos de respaldo generados', 'success');
+            }
+        }
+
+        function downloadBackupCodes() {
+            const codes = JSON.parse(localStorage.getItem(`2fa_backup_codes_${currentUser.id}`)) || [];
+            const content = `Códigos de Respaldo 2FA - ${currentUser.name}\n\n${codes.join('\n')}\n\nFecha: ${new Date().toLocaleString('es-ES')}`;
+            downloadFile(content, `2fa_backup_codes_${currentUser.name}.txt`, 'text/plain');
+            showToast('Códigos de respaldo descargados', 'success');
+        }
+
+        // Password change functions
+        document.getElementById('change-password-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            // Verify current password
+            if (currentPassword !== currentUser.password) {
+                showToast('Contraseña actual incorrecta', 'error');
+                return;
+            }
+            
+            // Verify new passwords match
+            if (newPassword !== confirmPassword) {
+                showToast('Las contraseñas no coinciden', 'error');
+                return;
+            }
+            
+            // Verify password strength
+            if (!isPasswordStrong(newPassword)) {
+                showToast('La contraseña no cumple con los requisitos de seguridad', 'error');
+                return;
+            }
+            
+            // Update password
+            currentUser.password = newPassword;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            // Update in users array
+            const userIndex = users.findIndex(u => u.id === currentUser.id);
+            if (userIndex !== -1) {
+                users[userIndex].password = newPassword;
+                localStorage.setItem('users', JSON.stringify(users));
+            }
+            
+            // Reset form
+            document.getElementById('change-password-form').reset();
+            showToast('Contraseña cambiada exitosamente', 'success');
+        });
+
+        // Password strength validation
+        document.getElementById('new-password').addEventListener('input', function(e) {
+            const password = e.target.value;
+            updatePasswordStrength(password);
+        });
+
+        function updatePasswordStrength(password) {
+            const checks = {
+                length: password.length >= 8,
+                uppercase: /[A-Z]/.test(password),
+                lowercase: /[a-z]/.test(password),
+                number: /\d/.test(password),
+                special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+            };
+            
+            // Update check indicators
+            document.getElementById('length-check').className = checks.length ? 'text-green-500' : 'text-red-500';
+            document.getElementById('uppercase-check').className = checks.uppercase ? 'text-green-500' : 'text-red-500';
+            document.getElementById('lowercase-check').className = checks.lowercase ? 'text-green-500' : 'text-red-500';
+            document.getElementById('number-check').className = checks.number ? 'text-green-500' : 'text-red-500';
+            document.getElementById('special-check').className = checks.special ? 'text-green-500' : 'text-red-500';
+            
+            // Update strength indicator
+            const score = Object.values(checks).filter(Boolean).length;
+            const strengthElement = document.getElementById('password-strength');
+            
+            if (score < 3) {
+                strengthElement.textContent = 'Débil';
+                strengthElement.className = 'text-red-500 font-medium';
+            } else if (score < 5) {
+                strengthElement.textContent = 'Media';
+                strengthElement.className = 'text-yellow-500 font-medium';
+            } else {
+                strengthElement.textContent = 'Fuerte';
+                strengthElement.className = 'text-green-500 font-medium';
+            }
+        }
+
+        function isPasswordStrong(password) {
+            return password.length >= 8 &&
+                   /[A-Z]/.test(password) &&
+                   /[a-z]/.test(password) &&
+                   /\d/.test(password) &&
+                   /[!@#$%^&*(),.?":{}|<>]/.test(password);
+        }
+
+        // Danger zone functions
+        function confirmResetTreatment() {
+            if (confirm('¿Estás seguro de que quieres reiniciar tu tratamiento? Se eliminará todo el historial de vacunas.')) {
+                if (confirm('Esta acción no se puede deshacer. ¿Continuar?')) {
+                    // Remove all vaccine records and schedules for this user
+                    vaccineRecords = vaccineRecords.filter(r => r.patientId !== currentUser.id);
+                    vaccineSchedules = vaccineSchedules.filter(s => s.patientId !== currentUser.id);
+                    
+                    // Remove treatment config
+                    localStorage.removeItem(`treatmentConfig_${currentUser.id}`);
+                    treatmentConfig = null;
+                    
+                    // Save changes
+                    localStorage.setItem('vaccineRecords', JSON.stringify(vaccineRecords));
+                    localStorage.setItem('vaccineSchedules', JSON.stringify(vaccineSchedules));
+                    
+                    showToast('Tratamiento reiniciado', 'success');
+                    showPage('treatment-setup');
+                }
+            }
+        }
+
+        function confirmDeleteAllData() {
+            if (confirm('¿Estás seguro de que quieres eliminar todos tus datos? Esto incluye perfil, historial y configuraciones.')) {
+                if (confirm('Esta acción no se puede deshacer. ¿Continuar?')) {
+                    // Remove all user data
+                    vaccineRecords = vaccineRecords.filter(r => r.patientId !== currentUser.id);
+                    vaccineSchedules = vaccineSchedules.filter(s => s.patientId !== currentUser.id);
+                    
+                    // Remove all user-specific localStorage items
+                    localStorage.removeItem(`treatmentConfig_${currentUser.id}`);
+                    localStorage.removeItem(`notificationSettings_${currentUser.id}`);
+                    localStorage.removeItem(`privacySettings_${currentUser.id}`);
+                    localStorage.removeItem(`2fa_enabled_${currentUser.id}`);
+                    localStorage.removeItem(`2fa_secret_${currentUser.id}`);
+                    localStorage.removeItem(`2fa_backup_codes_${currentUser.id}`);
+                    
+                    // Reset user profile
+                    currentUser.profilePhoto = undefined;
+                    currentUser.age = undefined;
+                    currentUser.emergencyContact = undefined;
+                    
+                    // Save changes
+                    localStorage.setItem('vaccineRecords', JSON.stringify(vaccineRecords));
+                    localStorage.setItem('vaccineSchedules', JSON.stringify(vaccineSchedules));
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    const userIndex = users.findIndex(u => u.id === currentUser.id);
+                    if (userIndex !== -1) {
+                        users[userIndex] = currentUser;
+                        localStorage.setItem('users', JSON.stringify(users));
+                    }
+                    
+                    treatmentConfig = null;
+                    showToast('Todos los datos eliminados', 'success');
+                    showPage('dashboard');
+                }
+            }
+        }
+
+        function confirmDeleteAccount() {
+            if (confirm('¿Estás seguro de que quieres eliminar tu cuenta? Se perderán todos los datos permanentemente.')) {
+                if (confirm('Esta acción no se puede deshacer. Escribe "ELIMINAR" para confirmar:') && 
+                    prompt('Escribe "ELIMINAR" para confirmar:') === 'ELIMINAR') {
+                    
+                    // Remove all user data
+                    vaccineRecords = vaccineRecords.filter(r => r.patientId !== currentUser.id);
+                    vaccineSchedules = vaccineSchedules.filter(s => s.patientId !== currentUser.id);
+                    users = users.filter(u => u.id !== currentUser.id);
+                    
+                    // Remove all user-specific localStorage items
+                    localStorage.removeItem(`treatmentConfig_${currentUser.id}`);
+                    localStorage.removeItem(`notificationSettings_${currentUser.id}`);
+                    localStorage.removeItem(`privacySettings_${currentUser.id}`);
+                    localStorage.removeItem(`2fa_enabled_${currentUser.id}`);
+                    localStorage.removeItem(`2fa_secret_${currentUser.id}`);
+                    localStorage.removeItem(`2fa_backup_codes_${currentUser.id}`);
+                    localStorage.removeItem('currentUser');
+                    
+                    // Save changes
+                    localStorage.setItem('vaccineRecords', JSON.stringify(vaccineRecords));
+                    localStorage.setItem('vaccineSchedules', JSON.stringify(vaccineSchedules));
+                    localStorage.setItem('users', JSON.stringify(users));
+                    
+                    showToast('Cuenta eliminada', 'info');
+                    logout();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
